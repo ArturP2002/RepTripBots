@@ -1,0 +1,166 @@
+================================================================================
+RepTrip — суть для разработки (пилот)
+Дедлайн pilot core: 18–20 сентября 2026
+Поездка: конец сентября / начало октября 2026, Казахстан + Узбекистан
+================================================================================
+
+--------------------------------------------------------------------------------
+1. ЧТО СТРОИМ
+--------------------------------------------------------------------------------
+Два чат-бота (Telegram + WhatsApp) с одним backend / одной БД /
+одной business logic. Не веб-кабинеты.
+
+Роли:
+  Representative — представитель educational provider, едет в город
+                   и хочет встречи с местными education agents.
+  Agent          — человек из образовательного агентства.
+  Владелец бота  — создаёт Trip, ведёт Google Calendar, шлёт ссылки,
+                   при необходимости Confirm от имени Representative.
+
+Целевой сценарий продукта:
+  город/даты → availability из календаря → приглашения агентам →
+  выбор времени → Confirm → событие в календаре с адресом/контактами.
+
+В пилоте (concierge):
+  • Trip создаёт владелец бота;
+  • Google Calendar — отдельный календарь ВЛАДЕЛЬЦА (не Outlook Rep);
+  • email-рассылка ссылки — только вручную;
+  • ссылка уникальна на Trip/встречу (не на Agent);
+  • агент видит инфо о встрече → при согласии регистрируется;
+  • профиль Agent сохраняется; на следующих встречах регистрация
+    не нужна (узнаём по Telegram / WhatsApp id);
+  • автопоиск агентов / cold outreach / автоemail — нет.
+
+Каналы:
+  Telegram — Узбекистан + контур владельца/Representative;
+  WhatsApp — Казахстан.
+  UI для пользователей — English.
+
+Стек (ориентир): Python/FastAPI + PostgreSQL + Telegram Bot API +
+WhatsApp Cloud API + Google Calendar API. Admin — CLI/SQL/минимум.
+
+  Core RepTrip
+      ├── Telegram-бот
+      ├── WhatsApp-бот
+      └── Google Calendar adapter
+
+--------------------------------------------------------------------------------
+2. СУЩНОСТИ
+--------------------------------------------------------------------------------
+Provider / Representative
+  — id, name, email; у Rep — provider_id.
+
+Trip
+  — representative_id, city, country, start/end dates,
+    availability hours по дням, meeting_format (In person / Online / Both),
+    location mode (visit agents' offices / agents come to me),
+    common meeting location, online_meeting_link, status,
+    unique share token/link (одна ссылка на эту встречу).
+
+Agent
+  — создаётся при первой регистрации в боте;
+    name, agency, email, phone, messenger ids, website,
+    city, country, office_address, do_not_contact;
+    persistent: переиспользуется на будущих Trip.
+
+MeetingRequest
+  — agent, trip, requested datetime, meeting_format,
+    office_address / online_meeting_link при необходимости,
+    status: pending / confirmed / declined.
+  Выбор агента НЕ бронирует слот. Несколько pending на одно время OK.
+
+Booking
+  — meeting_request_id, confirmed datetime, duration (default 60 мин),
+    calendar_event_id, status (в т.ч. cancelled).
+  Слот занят только после Confirm + создания Booking.
+
+Слоты считаются динамически: часы Trip − busy из Google Calendar,
+шаг 30 минут. Отдельная Slot entity не нужна.
+Персональные Invitation на агента заранее — не нужны.
+
+--------------------------------------------------------------------------------
+3. FLOW
+--------------------------------------------------------------------------------
+Владелец:
+  создаёт Representative + Trip → получает unique link на Trip →
+  вручную шлёт email со ссылкой (UZ→TG, KZ→WA или страница выбора) →
+  держит busy-слоты в Google Calendar.
+
+Agent в боте:
+  видит инфо о встрече → Yes / No
+  → Yes: новый → регистрация и сохранение в БД;
+           уже есть (по messenger id) → регистрацию пропускаем
+           (опционально подтвердить/обновить данные)
+  → если Trip=Both: In person / Online
+  → выбор слота → MeetingRequest (pending)
+  → сообщение: запрос отправлен, ждите confirmation.
+
+Representative / владелец в Telegram:
+  New meeting request + Confirm / Suggest another time / Decline
+
+Confirm:
+  re-check Google Calendar → если свободно:
+    MeetingRequest=confirmed, Booking, Calendar event, confirmation агенту;
+  если занято: Booking не создавать, предложить Suggest another time.
+
+Suggest another time:
+  агенту Yes / Choose another time
+  (Yes → снова calendar check → Booking + event).
+
+Decline:
+  MeetingRequest=declined, нейтральное сообщение агенту.
+
+Overlap:
+  после Confirm одного conflicting pending нельзя Confirm;
+  владельцу — Suggest another time.
+
+Cancel (Agent, confirmed):
+  Booking=cancelled, event удалить, слот свободен,
+  уведомить Representative. Полный reschedule не нужен.
+
+Calendar event (60 мин): agency, agent, contacts, location/link
+по правилам In person / Online из ТЗ.
+
+--------------------------------------------------------------------------------
+4. CRITERIA ГОТОВНОСТИ (E2E)
+--------------------------------------------------------------------------------
+1. Создать Representative и Trip.
+2. Получить unique link на Trip.
+3. Agent по ссылке в TG или WA видит встречу.
+4. Регистрация (или skip для уже известных).
+5. Выбор времени → MeetingRequest.
+6. Representative/владелец: Confirm / Suggest / Decline.
+7. Confirm → calendar re-check → Booking + Google event + confirmation.
+8. Нельзя подтвердить две пересекающиеся встречи.
+9. Confirmed можно отменить.
+10. Зарегистрированный Agent не регистрируется заново на следующем Trip.
+
+--------------------------------------------------------------------------------
+5. OUT OF SCOPE (пилот)
+--------------------------------------------------------------------------------
+Автоemail, автопоиск агентов, cold outreach, AI/NLU, CRM,
+Outlook Representative, Maps/travel time, разные duration,
+веб-дашборды Agent/Representative, multilingual UI,
+сложный admin, ROI/отчёты.
+Reminders 24h — желательно, но можно во вторую итерацию.
+
+Вручную ок: создание Trip, email со ссылкой, busy в Google Calendar,
+сводка расписания Representative.
+
+--------------------------------------------------------------------------------
+6. ДОСТУПЫ И ИНФРА
+--------------------------------------------------------------------------------
+Нужно от заказчика:
+  • Google аккаунт владельца + Calendar + OAuth (Calendar API)
+  • Telegram bot token (BotFather)
+  • WhatsApp: Meta Business, Cloud API, номер
+  • Домен + HTTPS
+  • Данные Representative / Trip
+  • Тексты email (ручная рассылка одной ссылки на Trip)
+  • Кто Confirm: Representative в TG или владелец от его имени
+
+Инфра: сервер (VPS/Railway/Fly/Render), PostgreSQL, SSL, secrets, бэкап БД.
+
+================================================================================
+Конец
+================================================================================
