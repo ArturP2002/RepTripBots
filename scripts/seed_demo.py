@@ -47,6 +47,7 @@ async def main() -> None:
         print("Демо Trip создан:")
         print(f"  id={trip.id} token={trip.share_token} tz={trip.timezone}")
         print(f"  Telegram: {links['tg_link']}")
+        print(f"  WhatsApp: {links['wa_link']}")
         print(f"  Go page:  {links['go_link']}")
 
 

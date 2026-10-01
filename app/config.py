@@ -35,6 +35,8 @@ class Settings(BaseSettings):
     # WhatsApp
     whatsapp_token: str = ""
     whatsapp_phone_number_id: str = ""
+    # Номер бота для ссылок wa.me (только цифры с кодом страны, без +)
+    whatsapp_display_phone: str = ""
     whatsapp_verify_token: str = "reptrip_verify"
     whatsapp_api_version: str = "v21.0"
 

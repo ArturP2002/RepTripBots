@@ -24,6 +24,18 @@ from app.db.models import (
 logger = logging.getLogger(__name__)
 
 
+def build_whatsapp_chat_url(settings: Settings, share_token: str) -> str:
+    """Ссылка wa.me на чат с ботом и предзаполненным JOIN {token}."""
+    text = quote(f"JOIN {share_token}")
+    phone = "".join(ch for ch in settings.whatsapp_display_phone if ch.isdigit())
+    if not phone:
+        logger.warning(
+            "WHATSAPP_DISPLAY_PHONE не задан — ссылка WhatsApp без номера бота"
+        )
+        return f"https://wa.me/?text={text}"
+    return f"https://wa.me/{phone}?text={text}"
+
+
 class TripService:
     """Создание и чтение поездок."""
 
@@ -149,13 +161,6 @@ class TripService:
             else f"(укажите TELEGRAM_BOT_USERNAME) start={trip.share_token}"
         )
         go_link = f"{base}/go/{trip.share_token}"
-
-        # WhatsApp click-to-chat с текстом token (агент напишет боту)
-        wa_text = quote(f"JOIN {trip.share_token}")
-        phone_id = self.settings.whatsapp_phone_number_id
-        # Для wa.me нужен номер в международном формате — в пилоте используем /go
-        wa_link = go_link
-        if phone_id:
-            wa_link = f"{go_link}?channel=whatsapp"
+        wa_link = build_whatsapp_chat_url(self.settings, trip.share_token)
 
         return {"tg_link": tg_link, "go_link": go_link, "wa_link": wa_link}

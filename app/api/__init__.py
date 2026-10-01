@@ -3,14 +3,13 @@
 from __future__ import annotations
 
 import logging
-from urllib.parse import quote
 
 from fastapi import APIRouter, FastAPI, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, PlainTextResponse
 
 from app.config import get_settings
 from app.db.base import get_session_factory
-from app.domain.trips import TripService
+from app.domain.trips import TripService, build_whatsapp_chat_url
 from app.i18n import t
 
 logger = logging.getLogger(__name__)
@@ -72,11 +71,7 @@ def create_api_app(whatsapp_handler=None) -> FastAPI:
             if tg_user
             else "#"
         )
-        # WhatsApp: пользователь пишет JOIN token на номер бизнеса —
-        # в пилоте ведём на wa.me с предзаполненным текстом, если задан номер в PUBLIC
-        wa_text = quote(f"JOIN {token}")
-        # Номер для wa.me лучше задавать отдельно; используем deep link через тот же /go hint
-        wa_url = f"https://wa.me/?text={wa_text}"
+        wa_url = build_whatsapp_chat_url(settings, token)
 
         html = f"""<!DOCTYPE html>
 <html lang="en">
