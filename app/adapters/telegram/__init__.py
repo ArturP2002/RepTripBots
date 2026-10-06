@@ -344,7 +344,6 @@ def build_telegram_dispatcher(settings: Settings | None = None) -> Dispatcher:
                 end_date=trip.end_date.isoformat(),
                 timezone=trip.timezone,
                 meeting_format=format_ru,
-                tg_link=links["tg_link"],
                 go_link=links["go_link"],
             )
             await message.answer(text)
