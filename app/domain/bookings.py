@@ -227,13 +227,13 @@ class BookingService:
         day_end = datetime.combine(local_day + timedelta(days=1), datetime.min.time())
         marker_id = await self.calendar.create_event(
             CalendarEventPayload(
-                title=f"RepTrip · {trip.city} · день встреч",
+                title=f"RepTrip · {trip.city} · meeting day",
                 start=day_start,
                 end=day_end,
                 description=(
-                    f"День с подтверждёнными встречами RepTrip "
-                    f"(поездка #{trip.id}, {trip.city}).\n"
-                    "Метка не блокирует свободное время."
+                    f"Day with confirmed RepTrip meetings "
+                    f"(trip #{trip.id}, {trip.city}).\n"
+                    "This marker does not block available time."
                 ),
                 timezone_name=trip.timezone,
                 color_id=settings.google_day_highlight_color_id or "5",

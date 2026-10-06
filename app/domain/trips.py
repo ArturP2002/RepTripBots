@@ -158,7 +158,7 @@ class TripService:
         tg_link = (
             f"https://t.me/{tg_username}?start={trip.share_token}"
             if tg_username
-            else f"(укажите TELEGRAM_BOT_USERNAME) start={trip.share_token}"
+            else f"(set TELEGRAM_BOT_USERNAME) start={trip.share_token}"
         )
         go_link = f"{base}/go/{trip.share_token}"
         wa_link = build_whatsapp_chat_url(self.settings, trip.share_token)

@@ -39,6 +39,13 @@ class AgentDialogState:
     selected_day: Optional[date] = None
     # Слоты выбранного дня: (start, is_free)
     day_slots: list[TimedSlot] = field(default_factory=list)
+    # Страница списка часов для WhatsApp (лимит 10 пунктов)
+    time_page: int = 0
+
+
+# WhatsApp list: макс. 10 rows. На странице — до 8 свободных + More + Back.
+_WA_TIMES_PER_PAGE = 8
+_WA_TIMES_FIT_WITHOUT_MORE = 9
 
 
 _STATES: dict[str, AgentDialogState] = {}
@@ -269,8 +276,30 @@ class AgentFlow:
 
         st.selected_day = selected
         st.day_slots = list(day_sched.slots)
+        st.time_page = 0
         st.step = "pick_time"
-        return self._times_message(trip, day_sched)
+        return self._times_message(trip, day_sched, channel=channel)
+
+    async def handle_more_times(
+        self,
+        *,
+        channel: str,
+        user_id: str | int,
+    ) -> OutgoingMessage:
+        """Следующая страница свободных часов (WhatsApp)."""
+        st = get_state(channel, user_id)
+        trip = await self.trips.get_trip(st.trip_id) if st.trip_id else None
+        if trip is None or st.selected_day is None or not st.day_slots:
+            return OutgoingMessage(text=t("en", "error_generic"))
+        day_sched = DaySchedule(day=st.selected_day, slots=list(st.day_slots))
+        free_count = sum(1 for s in day_sched.slots if s.is_free)
+        max_page = max(0, (max(free_count, 1) - 1) // _WA_TIMES_PER_PAGE)
+        st.time_page += 1
+        if st.time_page > max_page:
+            st.time_page = 0
+        return self._times_message(
+            trip, day_sched, channel=channel, page=st.time_page
+        )
 
     async def handle_time_choice(
         self,
@@ -385,6 +414,7 @@ class AgentFlow:
         st.step = "pick_date"
         st.selected_day = None
         st.day_slots = []
+        st.time_page = 0
 
         rows: list[list[tuple[str, str]]] = []
         row: list[tuple[str, str]] = []
@@ -407,11 +437,55 @@ class AgentFlow:
 
         return OutgoingMessage(text=t("en", "pick_date"), button_rows=rows)
 
-    def _times_message(self, trip: Trip, day_sched: DaySchedule) -> OutgoingMessage:
-        """Кнопки часов на выбранный день; занятые — ❌."""
+    def _times_message(
+        self,
+        trip: Trip,
+        day_sched: DaySchedule,
+        *,
+        channel: str = "telegram",
+        page: int = 0,
+    ) -> OutgoingMessage:
+        """Кнопки часов на выбранный день.
+
+        Telegram: все слоты, занятые с ❌.
+        WhatsApp: только свободные, страницами (лимит list = 10).
+        """
         tz = ZoneInfo(trip.timezone)
         date_label = day_sched.day.strftime("%d %B %Y")
-        rows: list[list[tuple[str, str]]] = []
+
+        if channel == "whatsapp":
+            free_indexed = [
+                (idx, timed)
+                for idx, timed in enumerate(day_sched.slots)
+                if timed.is_free
+            ]
+            rows: list[list[tuple[str, str]]] = []
+            if len(free_indexed) <= _WA_TIMES_FIT_WITHOUT_MORE:
+                page_items = free_indexed
+                show_more = False
+            else:
+                start = page * _WA_TIMES_PER_PAGE
+                if start >= len(free_indexed):
+                    start = 0
+                    page = 0
+                page_items = free_indexed[start : start + _WA_TIMES_PER_PAGE]
+                show_more = start + _WA_TIMES_PER_PAGE < len(free_indexed)
+
+            for idx, timed in page_items:
+                local = timed.start.astimezone(tz)
+                rows.append([(f"time:{idx}", local.strftime("%H:%M"))])
+
+            footer: list[tuple[str, str]] = []
+            if show_more:
+                footer.append(("times:more", t("en", "btn_more_times")))
+            footer.append(("dates:back", t("en", "btn_back_dates")))
+            rows.append(footer)
+            return OutgoingMessage(
+                text=t("en", "pick_time", date=date_label),
+                button_rows=rows,
+            )
+
+        rows = []
         row: list[tuple[str, str]] = []
         for idx, timed in enumerate(day_sched.slots):
             local = timed.start.astimezone(tz)

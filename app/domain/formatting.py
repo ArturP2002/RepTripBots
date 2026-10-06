@@ -25,24 +25,16 @@ def format_when(dt: datetime, tz_name: str, *, with_tz_label: bool = False) -> s
     if with_tz_label:
         # Понятная подпись, чтобы не путать с временем в МСК в Google Calendar
         city_hint = {
-            "Asia/Almaty": "Алматы",
-            "Asia/Tashkent": "Ташкент",
-            "Europe/Moscow": "Москва",
+            "Asia/Almaty": "Almaty",
+            "Asia/Tashkent": "Tashkent",
+            "Europe/Moscow": "Moscow",
         }.get(tz_name, tz_name)
         text = f"{text} ({city_hint})"
     return text
 
 
 def format_line_for_request(mr: MeetingRequest, *, lang: str = "en") -> str:
-    """Строка формата для карточки (en для агента, ru для владельца)."""
-    if lang == "ru":
-        from app.i18n import t
-
-        return {
-            MeetingFormat.IN_PERSON: t("ru", "format_in_person"),
-            MeetingFormat.ONLINE: t("ru", "format_online"),
-            MeetingFormat.BOTH: t("ru", "format_both"),
-        }.get(mr.meeting_format, mr.meeting_format.value)
+    """English meeting format label for request cards."""
     return {
         MeetingFormat.IN_PERSON: "In person",
         MeetingFormat.ONLINE: "Online",
@@ -55,7 +47,7 @@ def location_line_for_request(mr: MeetingRequest, *, lang: str = "en") -> str:
     trip = mr.trip
     if mr.meeting_format == MeetingFormat.ONLINE:
         link = mr.online_meeting_link or trip.online_meeting_link or "—"
-        prefix = "Онлайн" if lang == "ru" else "Online"
+        prefix = "Online"
         return f"{prefix} · {link}"
     from app.db.models import LocationMode
 

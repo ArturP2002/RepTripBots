@@ -235,6 +235,14 @@ async def handle_whatsapp_webhook_payload(
             )
             return
 
+        if button_id == "times:more":
+            out = await flow.handle_more_times(
+                channel="whatsapp",
+                user_id=wa_from,
+            )
+            await _wa_send_out(client, wa_from, out)
+            return
+
         if button_id == "dates:back":
             out = await flow.handle_back_to_dates(
                 channel="whatsapp",

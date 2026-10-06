@@ -17,7 +17,7 @@ def t(lang: str, key: str, **kwargs: Any) -> str:
     """
     Возвращает текст по ключу для языка lang.
 
-    :param lang: 'ru' для владельца, 'en' для агентов
+    :param lang: 'en' for all users; 'ru' is a compatibility alias
     :param key: ключ из словаря TEXTS
     """
     catalog = _CATALOGS.get(lang) or _CATALOGS["en"]

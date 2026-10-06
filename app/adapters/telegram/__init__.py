@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 
 
 class OwnerTripFSM(StatesGroup):
-    """FSM создания Trip владельцем (RU)."""
+    """FSM создания Trip владельцем (EN)."""
 
     provider = State()
     rep_name = State()
@@ -58,10 +58,10 @@ def _owner_kb_country() -> InlineKeyboardMarkup:
         inline_keyboard=[
             [
                 InlineKeyboardButton(
-                    text=t("ru", "btn_kz"), callback_data="own:country:KZ"
+                    text=t("en", "btn_kz"), callback_data="own:country:KZ"
                 ),
                 InlineKeyboardButton(
-                    text=t("ru", "btn_uz"), callback_data="own:country:UZ"
+                    text=t("en", "btn_uz"), callback_data="own:country:UZ"
                 ),
             ]
         ]
@@ -73,13 +73,13 @@ def _owner_kb_format() -> InlineKeyboardMarkup:
         inline_keyboard=[
             [
                 InlineKeyboardButton(
-                    text=t("ru", "btn_in_person"), callback_data="own:fmt:in_person"
+                    text=t("en", "btn_in_person"), callback_data="own:fmt:in_person"
                 ),
                 InlineKeyboardButton(
-                    text=t("ru", "btn_online"), callback_data="own:fmt:online"
+                    text=t("en", "btn_online"), callback_data="own:fmt:online"
                 ),
                 InlineKeyboardButton(
-                    text=t("ru", "btn_both"), callback_data="own:fmt:both"
+                    text=t("en", "btn_both"), callback_data="own:fmt:both"
                 ),
             ]
         ]
@@ -91,13 +91,13 @@ def _owner_kb_location() -> InlineKeyboardMarkup:
         inline_keyboard=[
             [
                 InlineKeyboardButton(
-                    text=t("ru", "btn_visit_offices"),
+                    text=t("en", "btn_visit_offices"),
                     callback_data="own:loc:visit_offices",
                 )
             ],
             [
                 InlineKeyboardButton(
-                    text=t("ru", "btn_agents_come"),
+                    text=t("en", "btn_agents_come"),
                     callback_data="own:loc:agents_come",
                 )
             ],
@@ -110,15 +110,15 @@ def _request_kb(request_id: int) -> InlineKeyboardMarkup:
         inline_keyboard=[
             [
                 InlineKeyboardButton(
-                    text=t("ru", "btn_confirm"),
+                    text=t("en", "btn_confirm"),
                     callback_data=f"own:confirm:{request_id}",
                 ),
                 InlineKeyboardButton(
-                    text=t("ru", "btn_suggest"),
+                    text=t("en", "btn_suggest"),
                     callback_data=f"own:suggest:{request_id}",
                 ),
                 InlineKeyboardButton(
-                    text=t("ru", "btn_decline"),
+                    text=t("en", "btn_decline"),
                     callback_data=f"own:decline:{request_id}",
                 ),
             ]
@@ -159,92 +159,92 @@ def build_telegram_dispatcher(settings: Settings | None = None) -> Dispatcher:
         if not message.from_user or not is_owner(message.from_user.id):
             await message.answer(t("en", "non_owner_hint"))
             return
-        await message.answer(t("ru", "owner_welcome"))
+        await message.answer(t("en", "owner_welcome"))
 
     @owner_router.message(Command("help"))
     async def owner_help(message: Message) -> None:
         if not message.from_user or not is_owner(message.from_user.id):
-            await message.answer(t("ru", "owner_only"))
+            await message.answer(t("en", "owner_only"))
             return
-        await message.answer(t("ru", "help_owner"))
+        await message.answer(t("en", "help_owner"))
 
     @owner_router.message(Command("new_trip"))
     async def new_trip(message: Message, state: FSMContext) -> None:
         if not message.from_user or not is_owner(message.from_user.id):
-            await message.answer(t("ru", "owner_only"))
+            await message.answer(t("en", "owner_only"))
             return
         await state.clear()
         await state.set_state(OwnerTripFSM.provider)
-        await message.answer(t("ru", "trip_create_start"))
+        await message.answer(t("en", "trip_create_start"))
 
     @owner_router.message(OwnerTripFSM.provider)
     async def trip_provider(message: Message, state: FSMContext) -> None:
         await state.update_data(provider=message.text)
         await state.set_state(OwnerTripFSM.rep_name)
-        await message.answer(t("ru", "trip_ask_rep_name"))
+        await message.answer(t("en", "trip_ask_rep_name"))
 
     @owner_router.message(OwnerTripFSM.rep_name)
     async def trip_rep_name(message: Message, state: FSMContext) -> None:
         await state.update_data(rep_name=message.text)
         await state.set_state(OwnerTripFSM.rep_email)
-        await message.answer(t("ru", "trip_ask_rep_email"))
+        await message.answer(t("en", "trip_ask_rep_email"))
 
     @owner_router.message(OwnerTripFSM.rep_email)
     async def trip_rep_email(message: Message, state: FSMContext) -> None:
         await state.update_data(rep_email=message.text)
         await state.set_state(OwnerTripFSM.city)
-        await message.answer(t("ru", "trip_ask_city"))
+        await message.answer(t("en", "trip_ask_city"))
 
     @owner_router.message(OwnerTripFSM.city)
     async def trip_city(message: Message, state: FSMContext) -> None:
         await state.update_data(city=message.text)
         await state.set_state(OwnerTripFSM.country)
-        await message.answer(t("ru", "trip_ask_country"), reply_markup=_owner_kb_country())
+        await message.answer(t("en", "trip_ask_country"), reply_markup=_owner_kb_country())
 
     @owner_router.callback_query(OwnerTripFSM.country, F.data.startswith("own:country:"))
     async def trip_country_cb(query: CallbackQuery, state: FSMContext) -> None:
         country = query.data.split(":")[-1]  # type: ignore[union-attr]
         await state.update_data(country=country)
         await state.set_state(OwnerTripFSM.start_date)
-        await query.message.answer(t("ru", "trip_ask_start_date"))  # type: ignore[union-attr]
+        await query.message.answer(t("en", "trip_ask_start_date"))  # type: ignore[union-attr]
         await query.answer()
 
     @owner_router.message(OwnerTripFSM.country)
     async def trip_country_text(message: Message, state: FSMContext) -> None:
         await state.update_data(country=message.text)
         await state.set_state(OwnerTripFSM.start_date)
-        await message.answer(t("ru", "trip_ask_start_date"))
+        await message.answer(t("en", "trip_ask_start_date"))
 
     @owner_router.message(OwnerTripFSM.start_date)
     async def trip_start(message: Message, state: FSMContext) -> None:
         d = _parse_date(message.text or "")
         if not d:
-            await message.answer(t("ru", "trip_invalid_date"))
+            await message.answer(t("en", "trip_invalid_date"))
             return
         await state.update_data(start_date=d.isoformat())
         await state.set_state(OwnerTripFSM.end_date)
-        await message.answer(t("ru", "trip_ask_end_date"))
+        await message.answer(t("en", "trip_ask_end_date"))
 
     @owner_router.message(OwnerTripFSM.end_date)
     async def trip_end(message: Message, state: FSMContext) -> None:
         d = _parse_date(message.text or "")
         if not d:
-            await message.answer(t("ru", "trip_invalid_date"))
+            await message.answer(t("en", "trip_invalid_date"))
             return
         await state.update_data(end_date=d.isoformat())
         await state.set_state(OwnerTripFSM.hours)
-        await message.answer(t("ru", "trip_ask_hours"))
+        await message.answer(t("en", "trip_ask_hours"))
 
     @owner_router.message(OwnerTripFSM.hours)
     async def trip_hours(message: Message, state: FSMContext) -> None:
         raw = (message.text or "").strip().replace(" ", "")
         if "-" not in raw:
-            await message.answer(t("ru", "trip_invalid_hours"))
+            await message.answer(t("en", "trip_invalid_hours"))
             return
         start_h, end_h = raw.split("-", 1)
         await state.update_data(hours_start=start_h, hours_end=end_h)
         await state.set_state(OwnerTripFSM.meeting_format)
-        await message.answer(t("ru", "trip_ask_format"), reply_markup=_owner_kb_format())
+        await message.answer(t("en", "trip_ask_format"), reply_markup=_owner_kb_format())
 
     @owner_router.callback_query(OwnerTripFSM.meeting_format, F.data.startswith("own:fmt:"))
     async def trip_fmt(query: CallbackQuery, state: FSMContext) -> None:
@@ -253,11 +253,11 @@ def build_telegram_dispatcher(settings: Settings | None = None) -> Dispatcher:
         if fmt in {"in_person", "both"}:
             await state.set_state(OwnerTripFSM.location_mode)
             await query.message.answer(  # type: ignore[union-attr]
-                t("ru", "trip_ask_location_mode"), reply_markup=_owner_kb_location()
+                t("en", "trip_ask_location_mode"), reply_markup=_owner_kb_location()
             )
         elif fmt == "online":
             await state.set_state(OwnerTripFSM.online_link)
-            await query.message.answer(t("ru", "trip_ask_online_link"))  # type: ignore[union-attr]
+            await query.message.answer(t("en", "trip_ask_online_link"))  # type: ignore[union-attr]
         await query.answer()
 
     @owner_router.callback_query(OwnerTripFSM.location_mode, F.data.startswith("own:loc:"))
@@ -268,11 +268,11 @@ def build_telegram_dispatcher(settings: Settings | None = None) -> Dispatcher:
         fmt = data.get("meeting_format")
         if mode == "agents_come":
             await state.set_state(OwnerTripFSM.common_location)
-            await query.message.answer(t("ru", "trip_ask_common_location"))  # type: ignore[union-attr]
+            await query.message.answer(t("en", "trip_ask_common_location"))  # type: ignore[union-attr]
         elif fmt == "both":
             # In person + Online: нужна online-ссылка
             await state.set_state(OwnerTripFSM.online_link)
-            await query.message.answer(t("ru", "trip_ask_online_link"))  # type: ignore[union-attr]
+            await query.message.answer(t("en", "trip_ask_online_link"))  # type: ignore[union-attr]
         else:
             # in_person + visit_offices — без online link
             await _finalize_trip(query.message, state)  # type: ignore[arg-type]
@@ -284,7 +284,7 @@ def build_telegram_dispatcher(settings: Settings | None = None) -> Dispatcher:
         data = await state.get_data()
         if data.get("meeting_format") in {"both", "online"}:
             await state.set_state(OwnerTripFSM.online_link)
-            await message.answer(t("ru", "trip_ask_online_link"))
+            await message.answer(t("en", "trip_ask_online_link"))
         else:
             await _finalize_trip(message, state)
 
@@ -324,26 +324,26 @@ def build_telegram_dispatcher(settings: Settings | None = None) -> Dispatcher:
                 online_meeting_link=data.get("online_link"),
             )
             links = service.build_links(trip)
-            format_ru = {
-                MeetingFormat.IN_PERSON: t("ru", "format_in_person"),
-                MeetingFormat.ONLINE: t("ru", "format_online"),
-                MeetingFormat.BOTH: t("ru", "format_both"),
+            format_label = {
+                MeetingFormat.IN_PERSON: t("en", "format_in_person"),
+                MeetingFormat.ONLINE: t("en", "format_online"),
+                MeetingFormat.BOTH: t("en", "format_both"),
             }.get(trip.meeting_format, trip.meeting_format.value)
-            country_ru = {"KZ": "Казахстан", "UZ": "Узбекистан"}.get(
+            country_label = {"KZ": "Kazakhstan", "UZ": "Uzbekistan"}.get(
                 trip.country, trip.country
             )
             text = t(
-                "ru",
+                "en",
                 "trip_created",
                 trip_id=trip.id,
                 provider=trip.representative.provider.name,
                 rep_name=trip.representative.name,
                 city=trip.city,
-                country=country_ru,
+                country=country_label,
                 start_date=trip.start_date.isoformat(),
                 end_date=trip.end_date.isoformat(),
                 timezone=trip.timezone,
-                meeting_format=format_ru,
+                meeting_format=format_label,
                 go_link=links["go_link"],
             )
             await message.answer(text)
@@ -352,17 +352,17 @@ def build_telegram_dispatcher(settings: Settings | None = None) -> Dispatcher:
     @owner_router.message(Command("trips"))
     async def list_trips(message: Message) -> None:
         if not message.from_user or not is_owner(message.from_user.id):
-            await message.answer(t("ru", "owner_only"))
+            await message.answer(t("en", "owner_only"))
             return
         factory = get_session_factory()
         async with factory() as session:
             trips = await TripService(session, settings).list_active()
         if not trips:
-            await message.answer(t("ru", "trips_empty"))
+            await message.answer(t("en", "trips_empty"))
             return
         lines = [
             t(
-                "ru",
+                "en",
                 "trips_list_item",
                 id=tr.id,
                 city=tr.city,
@@ -378,7 +378,7 @@ def build_telegram_dispatcher(settings: Settings | None = None) -> Dispatcher:
     @owner_router.callback_query(F.data.startswith("own:confirm:"))
     async def owner_confirm(query: CallbackQuery) -> None:
         if not query.from_user or not is_owner(query.from_user.id):
-            await query.answer(t("ru", "owner_only"), show_alert=True)
+            await query.answer(t("en", "owner_only"), show_alert=True)
             return
         request_id = int(query.data.split(":")[-1])  # type: ignore[union-attr]
         factory = get_session_factory()
@@ -387,25 +387,25 @@ def build_telegram_dispatcher(settings: Settings | None = None) -> Dispatcher:
             result = await svc.confirm(request_id)
             mr = await svc.get_request(request_id)
         if result.ok and mr:
-            await query.message.answer(t("ru", "confirm_ok"))  # type: ignore[union-attr]
+            await query.message.answer(t("en", "confirm_ok"))  # type: ignore[union-attr]
             notify = get_notify_agent()
             if notify:
                 await notify(mr, "confirmed")
         else:
-            await query.message.answer(t("ru", "confirm_busy"))  # type: ignore[union-attr]
+            await query.message.answer(t("en", "confirm_busy"))  # type: ignore[union-attr]
         await query.answer()
 
     @owner_router.callback_query(F.data.startswith("own:decline:"))
     async def owner_decline(query: CallbackQuery) -> None:
         if not query.from_user or not is_owner(query.from_user.id):
-            await query.answer(t("ru", "owner_only"), show_alert=True)
+            await query.answer(t("en", "owner_only"), show_alert=True)
             return
         request_id = int(query.data.split(":")[-1])  # type: ignore[union-attr]
         factory = get_session_factory()
         async with factory() as session:
             svc = BookingService(session, get_calendar())
             mr = await svc.decline(request_id)
-        await query.message.answer(t("ru", "decline_ok"))  # type: ignore[union-attr]
+        await query.message.answer(t("en", "decline_ok"))  # type: ignore[union-attr]
         if mr:
             notify = get_notify_agent()
             if notify:
@@ -415,7 +415,7 @@ def build_telegram_dispatcher(settings: Settings | None = None) -> Dispatcher:
     @owner_router.callback_query(F.data.startswith("own:suggest:"))
     async def owner_suggest(query: CallbackQuery) -> None:
         if not query.from_user or not is_owner(query.from_user.id):
-            await query.answer(t("ru", "owner_only"), show_alert=True)
+            await query.answer(t("en", "owner_only"), show_alert=True)
             return
         request_id = int(query.data.split(":")[-1])  # type: ignore[union-attr]
         factory = get_session_factory()
@@ -427,7 +427,7 @@ def build_telegram_dispatcher(settings: Settings | None = None) -> Dispatcher:
                 return
             slots = await list_candidate_slots(mr.trip, get_calendar())
             if not slots:
-                await query.message.answer(t("ru", "suggest_no_slots"))  # type: ignore[union-attr]
+                await query.message.answer(t("en", "suggest_no_slots"))  # type: ignore[union-attr]
                 await query.answer()
                 return
             rows = []
@@ -442,7 +442,7 @@ def build_telegram_dispatcher(settings: Settings | None = None) -> Dispatcher:
                 )
             # сохраняем слоты в runtime через message — упростим: пересчитаем в callback
             await query.message.answer(  # type: ignore[union-attr]
-                t("ru", "suggest_ask_slot"),
+                t("en", "suggest_ask_slot"),
                 reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
             )
         await query.answer()
@@ -450,7 +450,7 @@ def build_telegram_dispatcher(settings: Settings | None = None) -> Dispatcher:
     @owner_router.callback_query(F.data.startswith("own:suggestslot:"))
     async def owner_suggest_slot(query: CallbackQuery) -> None:
         if not query.from_user or not is_owner(query.from_user.id):
-            await query.answer(t("ru", "owner_only"), show_alert=True)
+            await query.answer(t("en", "owner_only"), show_alert=True)
             return
         parts = query.data.split(":")  # type: ignore[union-attr]
         request_id = int(parts[2])
@@ -467,7 +467,7 @@ def build_telegram_dispatcher(settings: Settings | None = None) -> Dispatcher:
                 await query.answer("Bad slot", show_alert=True)
                 return
             mr = await svc.reschedule_request(request_id, slots[slot_idx])
-        await query.message.answer(t("ru", "suggest_sent"))  # type: ignore[union-attr]
+        await query.message.answer(t("en", "suggest_sent"))  # type: ignore[union-attr]
         if mr:
             notify = get_notify_agent()
             if notify:
@@ -687,7 +687,7 @@ def build_telegram_dispatcher(settings: Settings | None = None) -> Dispatcher:
                 await bot.send_message(
                     owner_id,
                     t(
-                        "ru",
+                        "en",
                         "cancel_notify_owner",
                         agent_name=mr.agent.name,
                         agency=mr.agent.agency,
@@ -762,15 +762,15 @@ def _confirmed_text(mr) -> str:
 
 
 async def notify_owners_about_request(bot: Bot, settings: Settings, mr) -> None:
-    """Отправляет владельцам карточку заявки на русском."""
+    """Sends an English meeting request card to the owners."""
     text = t(
-        "ru",
+        "en",
         "new_meeting_request",
         agent_name=mr.agent.name,
         agency=mr.agent.agency,
         when=format_when(mr.requested_start, mr.trip.timezone, with_tz_label=True),
-        meeting_format=format_line_for_request(mr, lang="ru"),
-        location_line=location_line_for_request(mr, lang="ru"),
+        meeting_format=format_line_for_request(mr, lang="en"),
+        location_line=location_line_for_request(mr, lang="en"),
         city=mr.trip.city,
         trip_id=mr.trip_id,
     )
