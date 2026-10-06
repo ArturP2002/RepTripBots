@@ -227,11 +227,10 @@ async def handle_whatsapp_webhook_payload(
             return
 
         if button_id and button_id.startswith("busy:"):
-            kind = button_id.split(":")[-1]
             await client.send_text(
                 wa_from,
                 t("en", "day_busy_alert")
-                if kind == "day"
+                if button_id.startswith("busy:day")
                 else t("en", "slot_busy_alert"),
             )
             return

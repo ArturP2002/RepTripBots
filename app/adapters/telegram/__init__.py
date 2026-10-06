@@ -587,10 +587,10 @@ def build_telegram_dispatcher(settings: Settings | None = None) -> Dispatcher:
     @agent_router.callback_query(F.data.startswith("busy:"))
     async def agent_busy(query: CallbackQuery) -> None:
         """Занятый день/час — крестик, без перехода."""
-        kind = (query.data or "").split(":")[-1]
+        data = query.data or ""
         alert = (
             t("en", "day_busy_alert")
-            if kind == "day"
+            if data.startswith("busy:day")
             else t("en", "slot_busy_alert")
         )
         await query.answer(alert, show_alert=True)

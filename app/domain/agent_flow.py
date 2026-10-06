@@ -393,7 +393,8 @@ class AgentFlow:
             if day_sched.has_free:
                 cb = f"day:{day_sched.day.isoformat()}"
             else:
-                cb = "busy:day"
+                # Уникальный id: WhatsApp list запрещает дубли row id
+                cb = f"busy:day:{day_sched.day.isoformat()}"
             row.append((cb, label))
             if len(row) == 3:
                 rows.append(row)
@@ -418,7 +419,8 @@ class AgentFlow:
             if timed.is_free:
                 cb, label = f"time:{idx}", hhmm
             else:
-                cb, label = "busy:time", f"❌ {hhmm}"
+                # Уникальный id: WhatsApp list запрещает дубли row id
+                cb, label = f"busy:time:{idx}", f"❌ {hhmm}"
             row.append((cb, label))
             if len(row) == 4:
                 rows.append(row)
