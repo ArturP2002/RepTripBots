@@ -7,7 +7,7 @@ TEXTS = {
         "and would be happy to meet local education agents.\n\n"
         "Would you like to arrange a meeting?"
     ),
-    "btn_yes": "Yes, I'd like to meet",
+    "btn_yes": "Yes, let's meet",
     "btn_no": "No, thanks",
     "agent_declined_invite": "Thank you for letting us know. Have a great day!",
     "register_ask_name": "Please share your full name:",
